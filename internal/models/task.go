@@ -12,8 +12,8 @@ type Task struct {
 	Description string             `bson:"description" json:"description" validate:"required"`
 	Category    string             `bson:"category" json:"category" validate:"required"`
 	Priority    int                `bson:"priority" json:"priority" validate:"gte=0,lte=5"`
-	Status      string             `bson:"status" json:"status" validate:"required,oneof=pending completed cancelled"`
-	DueDate     *time.Time         `bson:"due_date" json:"due_date" validate:"omitempty"`
+	Status      string             `bson:"status" json:"status" validate:"required,oneof=pending completed in_progress"`
+	DueDate     *time.Time         `bson:"due_date,omitempty" json:"due_date,omitempty" validate:"omitempty"`
 	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
 }

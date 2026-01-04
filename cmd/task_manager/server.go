@@ -6,6 +6,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/nv-root/task-manager/internal/config"
@@ -47,6 +50,44 @@ func main() {
 	// router
 	routes.TaskRouter(mux, taskHandler)
 
-	fmt.Printf("Server running on port :%s...", cfg.Port)
-	http.ListenAndServe(":"+cfg.Port, mux)
+	server := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: mux,
+	}
+
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	go func() {
+		fmt.Printf("Server running on port :%s...\n", cfg.Port)
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalln("Error starting server:", err)
+		}
+	}()
+
+	// shutdown shit
+	<-ctx.Done()
+	fmt.Println("Shutting down server...")
+
+	stop()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err = server.Shutdown(shutdownCtx)
+	if err != nil {
+		log.Println("Server forced to shutdown:", err)
+	}
+
+	err = client.Disconnect(shutdownCtx)
+	if err != nil {
+		log.Println("Error closing database:", err)
+	}
+
+	fmt.Println("Shutdown complete.")
 }

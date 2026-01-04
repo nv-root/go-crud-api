@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -33,26 +32,57 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	err := DecodeStrict(r.Body, &task)
 	if err != nil {
-		utils.ErrorJSON(w, 400, "Invalid JSON", err.Error())
+		utils.ErrorJSON(w, http.StatusBadRequest, "Invalid JSON", err.Error())
 		return
 	}
 
 	err = validation.Validate.Struct(task)
 	if err != nil {
 		errs := utils.FormatValidationErrors(err)
-		utils.ErrorJSON(w, 400, "Validation failed", errs)
+		utils.ErrorJSON(w, http.StatusBadRequest, "Validation failed", errs)
 		return
 	}
 
 	created, err := h.Service.CreateTask(r.Context(), &task)
 	if err != nil {
-		utils.ErrorJSON(w, 500, "Error creating task", nil)
+		utils.ErrorJSON(w, http.StatusInternalServerError, "Error creating task", nil)
 		return
 	}
 
-	utils.ResponseJSON(w, 200, "Task created", created)
+	utils.ResponseJSON(w, http.StatusCreated, "Task created", created)
 }
 
+// get tasks, filter, sort, paginate
 func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Tasks")
+
+	filters := map[string]string{
+		"category": "",
+		"status":   "",
+		"limit":    "",
+		"page":     "",
+		"sort":     "",
+		"order":    "",
+		"search":   "",
+	}
+
+	for key := range filters {
+		if val, ok := r.URL.Query()[key]; ok {
+			filters[key] = val[0]
+		}
+	}
+
+	tasks, err := h.Service.GetTasks(r.Context(), filters)
+
+	if err != nil {
+		utils.ErrorJSON(w, http.StatusBadRequest, err.Error(), nil)
+		return
+	}
+
+	utils.ResponseJSON(w, http.StatusOK, "Tasks", struct {
+		Count int           `json:"count"`
+		Tasks []models.Task `json:"tasks"`
+	}{
+		Count: len(tasks),
+		Tasks: tasks,
+	})
 }
