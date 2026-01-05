@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/nv-root/task-manager/internal/models"
@@ -45,9 +46,41 @@ func (tr *TaskRepository) GetTasks(ctx context.Context, filter bson.M, sort bson
 	return tasks, nil
 }
 
-// func (tr *TaskRepository) GetTaskByID(ctx context.Context, id primitive.ObjectID) (*Task, error) {}
+func (tr *TaskRepository) GetTaskByID(ctx context.Context, id primitive.ObjectID) (*models.Task, error) {
+	result := tr.Collection.FindOne(ctx, bson.M{"_id": id})
 
-// func (tr *TaskRepository) UpdateTask (ctx context.Context, t *Tasl) error {}
+	var task models.Task
+	err := result.Decode(&task)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("Task not found")
+		}
+		return nil, err
+	}
+	return &task, nil
+}
+
+func (tr *TaskRepository) UpdateTask(ctx context.Context, task *models.Task) (*models.Task, error) {
+	filter := bson.M{"_id": task.ID}
+
+	update := bson.M{
+		"$set": bson.M{
+			"title":       task.Title,
+			"description": task.Description,
+			"status":      task.Status,
+			"priority":    task.Priority,
+			"due_date":    task.DueDate,
+			"updated_at":  time.Now(),
+		},
+	}
+
+	_, err := tr.Collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
 
 // func (tr *TaskRepository) DeleteTask(ctx context.Context, id primitive.ObjectID) error {}
 

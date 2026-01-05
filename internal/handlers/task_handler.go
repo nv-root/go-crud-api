@@ -9,6 +9,7 @@ import (
 	"github.com/nv-root/task-manager/internal/services"
 	"github.com/nv-root/task-manager/internal/utils"
 	"github.com/nv-root/task-manager/internal/validation"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type TaskHandler struct {
@@ -85,4 +86,47 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		Count: len(tasks),
 		Tasks: tasks,
 	})
+}
+
+// update task by id
+func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if id == "" {
+		utils.ErrorJSON(w, http.StatusBadRequest, "Task Id is required to update the task", nil)
+		return
+	}
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		utils.ErrorJSON(w, http.StatusBadRequest, "Invalid task id", nil)
+		return
+	}
+
+	var body models.UpdateTaskRequest
+	err = DecodeStrict(r.Body, &body)
+	if err != nil {
+		utils.ErrorJSON(w, http.StatusBadRequest, "Invalid JSON", nil)
+		return
+	}
+
+	if !body.HasUpdates() {
+		utils.ErrorJSON(w, http.StatusBadRequest, "no fields provided to update", nil)
+		return
+	}
+
+	err = validation.Validate.Struct(body)
+	if err != nil {
+		errs := utils.FormatValidationErrors(err)
+		utils.ErrorJSON(w, http.StatusBadRequest, "Validation failed", errs)
+		return
+	}
+
+	task, err := h.Service.UpdateTask(r.Context(), objectId, body)
+	if err != nil {
+		utils.ErrorJSON(w, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	utils.ResponseJSON(w, http.StatusOK, "Task updated", task)
 }

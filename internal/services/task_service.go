@@ -6,6 +6,7 @@ import (
 
 	"github.com/nv-root/task-manager/internal/models"
 	"github.com/nv-root/task-manager/internal/repository"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -75,4 +76,33 @@ func (s *TaskService) GetTasks(ctx context.Context, filters map[string]string) (
 	}
 
 	return tasks, nil
+}
+
+func (s *TaskService) UpdateTask(ctx context.Context, id primitive.ObjectID, req models.UpdateTaskRequest) (*models.Task, error) {
+
+	task, err := s.Repo.GetTaskByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Title != nil {
+		task.Title = *req.Title
+	}
+	if req.Description != nil {
+		task.Description = *req.Description
+	}
+	if req.Status != nil {
+		task.Status = *req.Status
+	}
+	if req.Priority != nil {
+		task.Priority = *req.Priority
+	}
+	if req.DueDate != nil {
+		task.DueDate = *req.DueDate
+	}
+
+	updatedTask, err := s.Repo.UpdateTask(ctx, task)
+
+	return updatedTask, err
+
 }

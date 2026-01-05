@@ -9,4 +9,5 @@ import (
 func TaskRouter(mux *http.ServeMux, taskHandler *handlers.TaskHandler) {
 	mux.HandleFunc("POST /tasks", taskHandler.CreateTask)
 	mux.HandleFunc("GET /tasks", taskHandler.GetTasks)
+	mux.HandleFunc("PUT /tasks/{id}", taskHandler.UpdateTask)
 }
