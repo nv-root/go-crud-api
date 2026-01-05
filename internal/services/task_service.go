@@ -6,6 +6,8 @@ import (
 
 	"github.com/nv-root/task-manager/internal/models"
 	"github.com/nv-root/task-manager/internal/repository"
+	"github.com/nv-root/task-manager/internal/utils"
+	"github.com/nv-root/task-manager/internal/validation"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -24,7 +26,7 @@ func (s *TaskService) CreateTask(ctx context.Context, task *models.Task) (*model
 
 	err := s.Repo.CreateTask(ctx, task)
 	if err != nil {
-		return nil, err
+		return nil, utils.Internal("Error creating task", nil)
 	}
 
 	return task, nil
@@ -72,13 +74,23 @@ func (s *TaskService) GetTasks(ctx context.Context, filters map[string]string) (
 
 	tasks, err := s.Repo.GetTasks(ctx, filter, sort, limit, skip)
 	if err != nil {
-		return nil, err
+		return nil, utils.Internal("Error getting tasks", nil)
 	}
 
 	return tasks, nil
 }
 
 func (s *TaskService) UpdateTask(ctx context.Context, id primitive.ObjectID, req models.UpdateTaskRequest) (*models.Task, error) {
+
+	if !req.HasUpdates() {
+		return nil, utils.BadRequest("no fields to update", nil)
+	}
+
+	err := validation.Validate.Struct(req)
+	if err != nil {
+		errs := utils.FormatValidationErrors(err)
+		return nil, utils.BadRequest("Validation failed", errs)
+	}
 
 	task, err := s.Repo.GetTaskByID(ctx, id)
 	if err != nil {
@@ -102,7 +114,23 @@ func (s *TaskService) UpdateTask(ctx context.Context, id primitive.ObjectID, req
 	}
 
 	updatedTask, err := s.Repo.UpdateTask(ctx, task)
+	if err != nil {
+		return nil, err
+	}
 
-	return updatedTask, err
+	return updatedTask, nil
+}
 
+func (s *TaskService) DeleteTask(ctx context.Context, id primitive.ObjectID) error {
+
+	_, err := s.Repo.GetTaskByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	err = s.Repo.DeleteTask(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -2,10 +2,10 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nv-root/task-manager/internal/models"
+	"github.com/nv-root/task-manager/internal/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -53,9 +53,9 @@ func (tr *TaskRepository) GetTaskByID(ctx context.Context, id primitive.ObjectID
 	err := result.Decode(&task)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("Task not found")
+			return nil, utils.NotFound("Task not found", nil)
 		}
-		return nil, err
+		return nil, utils.Internal("Error decoding task", nil)
 	}
 	return &task, nil
 }
@@ -76,12 +76,19 @@ func (tr *TaskRepository) UpdateTask(ctx context.Context, task *models.Task) (*m
 
 	_, err := tr.Collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		return nil, err
+		return nil, utils.Internal("Error updating task", nil)
 	}
 
 	return task, nil
 }
 
-// func (tr *TaskRepository) DeleteTask(ctx context.Context, id primitive.ObjectID) error {}
+func (tr *TaskRepository) DeleteTask(ctx context.Context, id primitive.ObjectID) error {
+	_, err := tr.Collection.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return utils.Internal("Error deleting task", nil)
+	}
+
+	return nil
+}
 
 // func (tr *TaskRepository) MarkCompleted(ctx context.Context, id primitive.ObjectID) error {}

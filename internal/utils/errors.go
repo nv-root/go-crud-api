@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -35,4 +36,34 @@ func FormatValidationErrors(err error) []ValidationErrType {
 		errs = append(errs, ValidationErrType{Path: field, Message: message})
 	}
 	return errs
+}
+
+type AppError struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+	Errors  any    `json:"errors,omitempty"`
+}
+
+func (e *AppError) Error() string {
+	return e.Message
+}
+
+func NewAppError(code int, msg string, errs any) *AppError {
+	return &AppError{
+		Code:    code,
+		Message: msg,
+		Errors:  errs,
+	}
+}
+
+func BadRequest(msg string, errs any) *AppError {
+	return NewAppError(http.StatusBadRequest, msg, errs)
+}
+
+func NotFound(msg string, errs any) *AppError {
+	return NewAppError(http.StatusNotFound, msg, errs)
+}
+
+func Internal(msg string, errs any) *AppError {
+	return NewAppError(http.StatusInternalServerError, msg, errs)
 }

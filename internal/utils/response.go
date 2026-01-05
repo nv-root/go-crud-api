@@ -11,7 +11,7 @@ func ResponseJSON(w http.ResponseWriter, statusCode int, message string, data an
 	res := struct {
 		Success bool   `json:"success"`
 		Message string `json:"message"`
-		Data    any    `json:"data"`
+		Data    any    `json:"data,omitempty"`
 	}{
 		Success: true,
 		Message: message,
@@ -27,7 +27,7 @@ func ErrorJSON(w http.ResponseWriter, statusCode int, message string, errs any) 
 	res := struct {
 		Success bool   `json:"success"`
 		Message string `json:"message"`
-		Errors  any    `json:"errors"`
+		Errors  any    `json:"errors,omitempty"`
 	}{
 		Success: false,
 		Message: message,

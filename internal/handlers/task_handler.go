@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -28,33 +29,31 @@ func DecodeStrict[T any](r io.Reader, v *T) error {
 }
 
 // create task
-func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
+func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 	var task models.Task
 
 	err := DecodeStrict(r.Body, &task)
 	if err != nil {
-		utils.ErrorJSON(w, http.StatusBadRequest, "Invalid JSON", err.Error())
-		return
+		return utils.BadRequest("Invalid JSON", nil)
 	}
 
 	err = validation.Validate.Struct(task)
 	if err != nil {
 		errs := utils.FormatValidationErrors(err)
-		utils.ErrorJSON(w, http.StatusBadRequest, "Validation failed", errs)
-		return
+		return utils.BadRequest("Validation Failed", errs)
 	}
 
 	created, err := h.Service.CreateTask(r.Context(), &task)
 	if err != nil {
-		utils.ErrorJSON(w, http.StatusInternalServerError, "Error creating task", nil)
-		return
+		return err
 	}
 
 	utils.ResponseJSON(w, http.StatusCreated, "Task created", created)
+	return nil
 }
 
 // get tasks, filter, sort, paginate
-func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
+func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) error {
 
 	filters := map[string]string{
 		"category": "",
@@ -73,10 +72,8 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tasks, err := h.Service.GetTasks(r.Context(), filters)
-
 	if err != nil {
-		utils.ErrorJSON(w, http.StatusBadRequest, err.Error(), nil)
-		return
+		return err
 	}
 
 	utils.ResponseJSON(w, http.StatusOK, "Tasks", struct {
@@ -86,47 +83,55 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		Count: len(tasks),
 		Tasks: tasks,
 	})
+	return nil
 }
 
 // update task by id
-func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
+func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
 
 	if id == "" {
-		utils.ErrorJSON(w, http.StatusBadRequest, "Task Id is required to update the task", nil)
-		return
+		return utils.BadRequest("Task Id is required to update the task", nil)
 	}
 
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		utils.ErrorJSON(w, http.StatusBadRequest, "Invalid task id", nil)
-		return
+		return utils.BadRequest("Invalid task id", nil)
 	}
 
 	var body models.UpdateTaskRequest
 	err = DecodeStrict(r.Body, &body)
 	if err != nil {
-		utils.ErrorJSON(w, http.StatusBadRequest, "Invalid JSON", nil)
-		return
-	}
-
-	if !body.HasUpdates() {
-		utils.ErrorJSON(w, http.StatusBadRequest, "no fields provided to update", nil)
-		return
-	}
-
-	err = validation.Validate.Struct(body)
-	if err != nil {
-		errs := utils.FormatValidationErrors(err)
-		utils.ErrorJSON(w, http.StatusBadRequest, "Validation failed", errs)
-		return
+		fmt.Printf("DEBUG: %v\n", err)
+		return utils.BadRequest("Invalid JSON", nil)
 	}
 
 	task, err := h.Service.UpdateTask(r.Context(), objectId, body)
 	if err != nil {
-		utils.ErrorJSON(w, http.StatusInternalServerError, err.Error(), nil)
-		return
+		return err
 	}
 
 	utils.ResponseJSON(w, http.StatusOK, "Task updated", task)
+	return nil
+}
+
+func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) error {
+	id := r.PathValue("id")
+
+	if id == "" {
+		return utils.BadRequest("Task Id is required to delete the task", nil)
+	}
+
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return utils.BadRequest("Invalid task id", nil)
+	}
+
+	err = h.Service.DeleteTask(r.Context(), objectId)
+	if err != nil {
+		return err
+	}
+
+	utils.ResponseJSON(w, http.StatusOK, "Task Deleted", nil)
+	return nil
 }
