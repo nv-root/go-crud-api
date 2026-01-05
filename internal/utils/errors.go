@@ -29,6 +29,8 @@ func FormatValidationErrors(err error) []ValidationErrType {
 			message = fmt.Sprintf("%s must be greater than or equal to %s", field, e.Param())
 		case "lte":
 			message = fmt.Sprintf("%s must be less than or equal to %s", field, e.Param())
+		case "rfc3339":
+			message = "must be in RFC3339 format (e.g., 2006-01-02T15:04:05Z or 2006-01-02T15:04:05+05:30)"
 		default:
 			message = fmt.Sprintf("%s has an invalid value", field)
 		}

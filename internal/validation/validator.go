@@ -3,6 +3,7 @@ package validation
 import (
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -17,5 +18,13 @@ func init() {
 			return ""
 		}
 		return name
+	})
+
+	Validate.RegisterValidation("rfc3339", func(fl validator.FieldLevel) bool {
+		if fl.Field().String() == "" {
+			return true
+		}
+		_, err := time.Parse(time.RFC3339, fl.Field().String())
+		return err == nil
 	})
 }

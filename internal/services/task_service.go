@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/nv-root/task-manager/internal/models"
 	"github.com/nv-root/task-manager/internal/repository"
@@ -22,14 +23,26 @@ func NewTaskService(repo *repository.TaskRepository) *TaskService {
 	}
 }
 
-func (s *TaskService) CreateTask(ctx context.Context, task *models.Task) (*models.Task, error) {
+func (s *TaskService) CreateTask(ctx context.Context, task *models.CreateTaskRequest) (*models.Task, error) {
 
-	err := s.Repo.CreateTask(ctx, task)
+	var due time.Time
+	if task.DueDate != "" {
+		due, _ = time.Parse(time.RFC3339, task.DueDate)
+	}
+	newTask := &models.Task{
+		Title:       task.Title,
+		Description: task.Description,
+		Category:    task.Category,
+		Status:      task.Status,
+		Priority:    task.Priority,
+		DueDate:     due,
+	}
+	err := s.Repo.CreateTask(ctx, newTask)
 	if err != nil {
 		return nil, utils.Internal("Error creating task", nil)
 	}
 
-	return task, nil
+	return newTask, nil
 }
 
 func (s *TaskService) GetTasks(ctx context.Context, filters map[string]string) ([]models.Task, error) {
@@ -109,8 +122,11 @@ func (s *TaskService) UpdateTask(ctx context.Context, id primitive.ObjectID, req
 	if req.Priority != nil {
 		task.Priority = *req.Priority
 	}
+
+	var due time.Time
 	if req.DueDate != nil {
-		task.DueDate = *req.DueDate
+		due, _ = time.Parse(time.RFC3339, *req.DueDate)
+		task.DueDate = due
 	}
 
 	updatedTask, err := s.Repo.UpdateTask(ctx, task)

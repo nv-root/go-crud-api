@@ -30,7 +30,7 @@ func DecodeStrict[T any](r io.Reader, v *T) error {
 
 // create task
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
-	var task models.Task
+	var task models.CreateTaskRequest
 
 	err := DecodeStrict(r.Body, &task)
 	if err != nil {
