@@ -24,12 +24,17 @@ func NewTaskService(repo *repository.TaskRepository) *TaskService {
 }
 
 func (s *TaskService) CreateTask(ctx context.Context, task *models.CreateTaskRequest) (*models.Task, error) {
+	userObjId, err := primitive.ObjectIDFromHex(ctx.Value("user_id").(string))
+	if err != nil {
+		return nil, utils.Unauthorized("Unauthorized access", nil)
+	}
 
 	var due time.Time
 	if task.DueDate != "" {
 		due, _ = time.Parse(time.RFC3339, task.DueDate)
 	}
 	newTask := &models.Task{
+		UserID:      userObjId,
 		Title:       task.Title,
 		Description: task.Description,
 		Category:    task.Category,
@@ -37,7 +42,7 @@ func (s *TaskService) CreateTask(ctx context.Context, task *models.CreateTaskReq
 		Priority:    task.Priority,
 		DueDate:     due,
 	}
-	err := s.Repo.CreateTask(ctx, newTask)
+	err = s.Repo.CreateTask(ctx, newTask)
 	if err != nil {
 		return nil, utils.Internal("Error creating task", nil)
 	}
@@ -47,7 +52,11 @@ func (s *TaskService) CreateTask(ctx context.Context, task *models.CreateTaskReq
 
 func (s *TaskService) GetTasks(ctx context.Context, filters map[string]string) ([]models.Task, error) {
 
-	filter := bson.M{}
+	userObjId, err := primitive.ObjectIDFromHex(ctx.Value("user_id").(string))
+	if err != nil {
+		return nil, utils.Unauthorized("Unauthorized access", nil)
+	}
+	filter := bson.M{"user_id": userObjId}
 
 	if v, ok := filters["category"]; ok && v != "" {
 		filter["category"] = v
@@ -110,6 +119,14 @@ func (s *TaskService) UpdateTask(ctx context.Context, id primitive.ObjectID, req
 		return nil, err
 	}
 
+	userObjId, err := primitive.ObjectIDFromHex(ctx.Value("user_id").(string))
+	if err != nil {
+		return nil, utils.Unauthorized("Unauthorized access", nil)
+	}
+	if task.UserID != userObjId {
+		return nil, utils.Unauthorized("Unauthorized access", nil)
+	}
+
 	if req.Title != nil {
 		task.Title = *req.Title
 	}
@@ -139,9 +156,16 @@ func (s *TaskService) UpdateTask(ctx context.Context, id primitive.ObjectID, req
 
 func (s *TaskService) DeleteTask(ctx context.Context, id primitive.ObjectID) error {
 
-	_, err := s.Repo.GetTaskByID(ctx, id)
+	task, err := s.Repo.GetTaskByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	userObjId, err := primitive.ObjectIDFromHex(ctx.Value("user_id").(string))
+	if err != nil {
+		return utils.Unauthorized("Unauthorized access", nil)
+	}
+	if task.UserID != userObjId {
+		return utils.Unauthorized("Unauthorized access", nil)
 	}
 
 	err = s.Repo.DeleteTask(ctx, id)

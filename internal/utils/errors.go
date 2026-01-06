@@ -21,6 +21,8 @@ func FormatValidationErrors(err error) []ValidationErrType {
 		switch e.Tag() {
 		case "required":
 			message = fmt.Sprintf("%s is required", field)
+		case "email":
+			message = fmt.Sprintf("%s must be a valid email address", field)
 		case "min":
 			message = fmt.Sprintf("%s must have at least %s characters", field, e.Param())
 		case "oneof":
@@ -68,4 +70,8 @@ func NotFound(msg string, errs any) *AppError {
 
 func Internal(msg string, errs any) *AppError {
 	return NewAppError(http.StatusInternalServerError, msg, errs)
+}
+
+func Unauthorized(msg string, errs any) *AppError {
+	return NewAppError(http.StatusUnauthorized, msg, errs)
 }

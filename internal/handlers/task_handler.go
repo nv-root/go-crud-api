@@ -32,6 +32,8 @@ func DecodeStrict[T any](r io.Reader, v *T) error {
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 	var task models.CreateTaskRequest
 
+	fmt.Printf("DEBUG: Context values: %v\n", r.Context())
+
 	err := DecodeStrict(r.Body, &task)
 	if err != nil {
 		return utils.BadRequest("Invalid JSON", nil)
@@ -54,6 +56,8 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 
 // get tasks, filter, sort, paginate
 func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) error {
+
+	fmt.Printf("DEBUG: Context values: %v\n", r.Context())
 
 	filters := map[string]string{
 		"category": "",
