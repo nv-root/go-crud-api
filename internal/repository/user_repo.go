@@ -95,8 +95,8 @@ func (ur *UserRepository) UpdatePassword(ctx context.Context, token string, req 
 	updates := bson.M{
 		"$set": bson.M{"password": req.Password, "updated_at": time.Now()},
 		"$unset": bson.M{
-			"password_reset_token":         "",
-			"password_reset_token_expires": "",
+			"password_reset_token":            "",
+			"password_reset_token_expires_at": "",
 		},
 	}
 

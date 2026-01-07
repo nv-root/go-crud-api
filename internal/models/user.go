@@ -15,10 +15,10 @@ type User struct {
 	Verified                    bool               `bson:"verified"`
 	CreatedAt                   time.Time          `bson:"created_at"`
 	UpdatedAt                   time.Time          `bson:"updated_at"`
-	VerificationToken           string             `bson:"verification_token"`
-	VerificationTokenExpiresAt  time.Time          `bson:"verification_token_expires_at"`
-	PasswordResetToken          string             `bson:"password_reset_token"`
-	PasswordResetTokenExpiresAt time.Time          `bson:"password_reset_token_expires_at"`
+	VerificationToken           string             `bson:"verification_token,omitempty"`
+	VerificationTokenExpiresAt  *time.Time         `bson:"verification_token_expires_at,omitempty"`
+	PasswordResetToken          string             `bson:"password_reset_token,omitempty"`
+	PasswordResetTokenExpiresAt *time.Time         `bson:"password_reset_token_expires_at,omitempty"`
 }
 
 type CreateUserRequest struct {

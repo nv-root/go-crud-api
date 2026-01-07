@@ -23,6 +23,8 @@ func FormatValidationErrors(err error) []ValidationErrType {
 			message = fmt.Sprintf("%s is required", field)
 		case "email":
 			message = fmt.Sprintf("%s must be a valid email address", field)
+		case "confirm_password":
+			message = "password and confirm passwords must be same"
 		case "min":
 			message = fmt.Sprintf("%s must have at least %s characters", field, e.Param())
 		case "oneof":
