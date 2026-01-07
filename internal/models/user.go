@@ -8,15 +8,17 @@ import (
 )
 
 type User struct {
-	ID                           primitive.ObjectID `bson:"_id"`
-	Username                     string             `bson:"username"`
-	Email                        string             `bson:"email"`
-	Password                     string             `bson:"password"`
-	Verified                     bool               `bson:"verified"`
-	CreatedAt                    time.Time          `bson:"created_at"`
-	UpdatedAt                    time.Time          `bson:"updated_at"`
-	Password_reset_token         string             `bson:"password_reset_token"`
-	Password_reset_token_expires time.Time          `bson:"password_reset_token_expires"`
+	ID                          primitive.ObjectID `bson:"_id"`
+	Username                    string             `bson:"username"`
+	Email                       string             `bson:"email"`
+	Password                    string             `bson:"password"`
+	Verified                    bool               `bson:"verified"`
+	CreatedAt                   time.Time          `bson:"created_at"`
+	UpdatedAt                   time.Time          `bson:"updated_at"`
+	VerificationToken           string             `bson:"verification_token"`
+	VerificationTokenExpiresAt  time.Time          `bson:"verification_token_expires_at"`
+	PasswordResetToken          string             `bson:"password_reset_token"`
+	PasswordResetTokenExpiresAt time.Time          `bson:"password_reset_token_expires_at"`
 }
 
 type CreateUserRequest struct {

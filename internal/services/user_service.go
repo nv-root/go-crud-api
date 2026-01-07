@@ -22,7 +22,6 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 }
 
 func (s *UserService) CreateUser(ctx context.Context, user *models.CreateUserRequest) (*models.UserResponse, error) {
-
 	existingUser, _ := s.Repo.GetUserByEmail(ctx, user.Email)
 	if existingUser != nil {
 		return nil, utils.BadRequest("Email already exists", nil)
@@ -30,13 +29,22 @@ func (s *UserService) CreateUser(ctx context.Context, user *models.CreateUserReq
 
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
-		return nil, utils.Internal("Error creating user", nil)
+		return nil, utils.Internal("Error processing password", nil)
 	}
 
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return nil, utils.Internal("Internal security error", nil)
+	}
+	token := hex.EncodeToString(b)
+
 	newUser := &models.User{
-		Username: user.Username,
-		Email:    user.Email,
-		Password: hashedPassword,
+		Username:                   user.Username,
+		Email:                      user.Email,
+		Password:                   hashedPassword,
+		Verified:                   false,
+		VerificationToken:          token,
+		VerificationTokenExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
 	err = s.Repo.CreateUser(ctx, newUser)
@@ -44,19 +52,30 @@ func (s *UserService) CreateUser(ctx context.Context, user *models.CreateUserReq
 		return nil, err
 	}
 
-	return &models.UserResponse{
+	err = utils.SendVerificationEmail(newUser.Email, token)
+
+	resUser := &models.UserResponse{
 		ID:        newUser.ID,
 		Username:  newUser.Username,
 		Email:     newUser.Email,
 		CreatedAt: newUser.CreatedAt,
-		UpdatedAt: newUser.UpdatedAt,
-	}, nil
+	}
+
+	if err != nil {
+		return resUser, utils.Internal("Account created, but failed to send verification email. Please try 'Resend Verification'.", nil)
+	}
+
+	return resUser, nil
 }
 
 func (s *UserService) LoginUser(ctx context.Context, creds *models.Credentials) (any, error) {
 	user, _ := s.Repo.GetUserByEmail(ctx, creds.Email)
 	if user == nil {
 		return nil, utils.Unauthorized("Invalid email or password", nil)
+	}
+
+	if !user.Verified {
+		return nil, utils.Forbidden("Please verify your email before logging in", nil)
 	}
 
 	err := utils.VerifyPassword(creds.Password, user.Password)
@@ -105,8 +124,8 @@ func (s *UserService) ForgotPassword(ctx context.Context, email string) error {
 		return utils.Internal("Error sending email", nil)
 	}
 
-	existingUser.Password_reset_token = token
-	existingUser.Password_reset_token_expires = time.Now().Add(10 * time.Minute)
+	existingUser.PasswordResetToken = token
+	existingUser.PasswordResetTokenExpiresAt = time.Now().Add(10 * time.Minute)
 
 	err = s.Repo.UpdatePasswordToken(ctx, existingUser)
 	if err != nil {
@@ -129,5 +148,15 @@ func (s *UserService) ResetPassword(ctx context.Context, token string, req *mode
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (s *UserService) VerifyEmail(ctx context.Context, token string) error {
+
+	err := s.Repo.VerifyEmail(ctx, token)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

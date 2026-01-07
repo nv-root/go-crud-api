@@ -48,12 +48,37 @@ func (ur *UserRepository) CreateUser(ctx context.Context, user *models.User) err
 	return nil
 }
 
+func (ur *UserRepository) VerifyEmail(ctx context.Context, token string) error {
+	filter := bson.M{
+		"verification_token":            token,
+		"verification_token_expires_at": bson.M{"$gt": time.Now()},
+	}
+	updates := bson.M{
+		"$set": bson.M{"verified": true},
+		"$unset": bson.M{
+			"verification_token":            "",
+			"verification_token_expires_at": "",
+		},
+	}
+
+	result, err := ur.Collection.UpdateOne(ctx, filter, updates)
+	if err != nil {
+		return utils.Internal("Error updating user verification status", nil)
+	}
+
+	if result.MatchedCount == 0 {
+		return utils.BadRequest("Invalid or expired verification token", nil)
+	}
+
+	return nil
+}
+
 func (ur *UserRepository) UpdatePasswordToken(ctx context.Context, user *models.User) error {
 	filter := bson.M{"_id": user.ID, "email": user.Email}
 	updates := bson.M{
 		"$set": bson.M{
-			"password_reset_token":         user.Password_reset_token,
-			"password_reset_token_expires": user.Password_reset_token_expires,
+			"password_reset_token":            user.PasswordResetToken,
+			"password_reset_token_expires_at": user.PasswordResetTokenExpiresAt,
 		},
 	}
 
@@ -66,7 +91,7 @@ func (ur *UserRepository) UpdatePasswordToken(ctx context.Context, user *models.
 
 func (ur *UserRepository) UpdatePassword(ctx context.Context, token string, req *models.UpdatePasswordRequest) error {
 
-	filter := bson.M{"password_reset_token": token, "password_reset_token_expires": bson.M{"$gt": time.Now()}}
+	filter := bson.M{"password_reset_token": token, "password_reset_token_expires_at": bson.M{"$gt": time.Now()}}
 	updates := bson.M{
 		"$set": bson.M{"password": req.Password, "updated_at": time.Now()},
 		"$unset": bson.M{

@@ -21,7 +21,7 @@ func NewUserHandler(service *services.UserService) *UserHandler {
 	}
 }
 
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) error {
+func (h *UserHandler) SignupUser(w http.ResponseWriter, r *http.Request) error {
 	var user models.CreateUserRequest
 
 	err := DecodeStrict(r.Body, &user)
@@ -36,11 +36,16 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	created, err := h.Service.CreateUser(r.Context(), &user)
+	if err != nil && created != nil {
+		utils.ResponseJSON(w, http.StatusAccepted, err.Error(), created)
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
 
-	utils.ResponseJSON(w, http.StatusCreated, "User created", created)
+	utils.ResponseJSON(w, http.StatusCreated, "Signup successful. Please verify your email", created)
 	return nil
 }
 
@@ -69,6 +74,21 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	utils.ResponseJSON(w, http.StatusOK, "Loggedin", data)
+	return nil
+}
+
+func (h *UserHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) error {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		utils.BadRequest("Missing email verification token", nil)
+	}
+
+	err := h.Service.VerifyEmail(r.Context(), token)
+	if err != nil {
+		return err
+	}
+
+	utils.ResponseJSON(w, http.StatusOK, "Email Verified", nil)
 	return nil
 }
 

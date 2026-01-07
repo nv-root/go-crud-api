@@ -18,6 +18,7 @@ var publicRoutes = map[string]bool{
 	"/api/auth/login":           true,
 	"/api/auth/forgot-password": true,
 	"/api/auth/reset-password":  true,
+	"/api/auth/verify-email":    true,
 }
 
 func JWTMiddleware(next http.Handler) http.Handler {
