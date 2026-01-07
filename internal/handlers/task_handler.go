@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -32,8 +31,6 @@ func DecodeStrict[T any](r io.Reader, v *T) error {
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 	var task models.CreateTaskRequest
 
-	fmt.Printf("DEBUG: Context values: %v\n", r.Context())
-
 	err := DecodeStrict(r.Body, &task)
 	if err != nil {
 		return utils.BadRequest("Invalid JSON", nil)
@@ -56,8 +53,6 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) error {
 
 // get tasks, filter, sort, paginate
 func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) error {
-
-	fmt.Printf("DEBUG: Context values: %v\n", r.Context())
 
 	filters := map[string]string{
 		"category": "",
@@ -106,7 +101,6 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) error {
 	var body models.UpdateTaskRequest
 	err = DecodeStrict(r.Body, &body)
 	if err != nil {
-		fmt.Printf("DEBUG: %v\n", err)
 		return utils.BadRequest("Invalid JSON", nil)
 	}
 

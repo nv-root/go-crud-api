@@ -30,7 +30,6 @@ func (ur *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mo
 		if err == mongo.ErrNoDocuments {
 			return nil, err
 		}
-		fmt.Printf("DEBUG: %v\n", err)
 		return nil, err
 	}
 
@@ -47,4 +46,41 @@ func (ur *UserRepository) CreateUser(ctx context.Context, user *models.User) err
 		return utils.Internal("Error creating user", nil)
 	}
 	return nil
+}
+
+func (ur *UserRepository) UpdatePasswordToken(ctx context.Context, user *models.User) error {
+	filter := bson.M{"_id": user.ID, "email": user.Email}
+	updates := bson.M{
+		"$set": bson.M{
+			"password_reset_token":         user.Password_reset_token,
+			"password_reset_token_expires": user.Password_reset_token_expires,
+		},
+	}
+
+	_, err := ur.Collection.UpdateOne(ctx, filter, updates)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ur *UserRepository) UpdatePassword(ctx context.Context, token string, req *models.UpdatePasswordRequest) error {
+
+	filter := bson.M{"password_reset_token": token, "password_reset_token_expires": bson.M{"$gt": time.Now()}}
+	updates := bson.M{
+		"$set": bson.M{"password": req.Password, "updated_at": time.Now()},
+		"$unset": bson.M{
+			"password_reset_token":         "",
+			"password_reset_token_expires": "",
+		},
+	}
+
+	result, err := ur.Collection.UpdateOne(ctx, filter, updates)
+	if err != nil || result.MatchedCount == 0 {
+		fmt.Println("error:", err)
+		fmt.Println("result:", result)
+		return utils.BadRequest("Invalid or expired token", nil)
+	}
+	return nil
+
 }

@@ -27,7 +27,7 @@ func main() {
 		log.Fatalln("Error loading env")
 	}
 
-	cfg := config.Config{
+	cfg := config.Primary{
 		MongoUri:  os.Getenv("MONGO_URI"),
 		Database:  os.Getenv("DATABASE_NAME"),
 		Port:      os.Getenv("PORT"),

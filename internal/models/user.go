@@ -8,12 +8,15 @@ import (
 )
 
 type User struct {
-	ID        primitive.ObjectID `bson:"_id"`
-	Username  string             `bson:"username"`
-	Email     string             `bson:"email"`
-	Password  string             `bson:"password"`
-	CreatedAt time.Time          `bson:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at"`
+	ID                           primitive.ObjectID `bson:"_id"`
+	Username                     string             `bson:"username"`
+	Email                        string             `bson:"email"`
+	Password                     string             `bson:"password"`
+	Verified                     bool               `bson:"verified"`
+	CreatedAt                    time.Time          `bson:"created_at"`
+	UpdatedAt                    time.Time          `bson:"updated_at"`
+	Password_reset_token         string             `bson:"password_reset_token"`
+	Password_reset_token_expires time.Time          `bson:"password_reset_token_expires"`
 }
 
 type CreateUserRequest struct {
@@ -40,4 +43,9 @@ type Claims struct {
 	Email    string `json:"email"`
 	Username string `json:"username"`
 	jwt.RegisteredClaims
+}
+
+type UpdatePasswordRequest struct {
+	Password        string `json:"password" validate:"required,min=6"`
+	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
 }

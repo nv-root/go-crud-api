@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nv-root/task-manager/internal/models"
@@ -27,8 +26,6 @@ func (tr *TaskRepository) CreateTask(ctx context.Context, task *models.Task) err
 	task.ID = primitive.NewObjectID()
 	task.CreatedAt = time.Now()
 	task.UpdatedAt = time.Now()
-
-	fmt.Printf("DEBUG: new task%v\n", task)
 
 	_, err := tr.Collection.InsertOne(ctx, task)
 	return err

@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
-	"fmt"
+	"crypto/rand"
+	"encoding/hex"
+	"time"
 
 	"github.com/nv-root/task-manager/internal/models"
 	"github.com/nv-root/task-manager/internal/repository"
@@ -62,11 +64,8 @@ func (s *UserService) LoginUser(ctx context.Context, creds *models.Credentials) 
 		return nil, utils.Unauthorized("Invalid email or password", nil)
 	}
 
-	fmt.Printf("DEBUG: userId in service: %v\n", user.ID)
-
 	token, err := utils.CreateTokenWithClaims(*user)
 	if err != nil {
-		fmt.Printf("DEBUG: Error logging in %v\n", err)
 		return nil, utils.Internal("Error Logging In", nil)
 	}
 
@@ -83,4 +82,52 @@ func (s *UserService) LoginUser(ctx context.Context, creds *models.Credentials) 
 			UpdatedAt: user.UpdatedAt,
 		},
 	}, nil
+}
+
+func (s *UserService) ForgotPassword(ctx context.Context, email string) error {
+	if email == "" {
+		return utils.BadRequest("Email is required", nil)
+	}
+	existingUser, err := s.Repo.GetUserByEmail(ctx, email)
+	if existingUser == nil {
+		return utils.NotFound("User not found", nil)
+	}
+
+	b := make([]byte, 32)
+	_, err = rand.Read(b)
+	if err != nil {
+		return utils.Internal("Error sending email", nil)
+	}
+
+	token := hex.EncodeToString(b)
+	err = utils.SendForgotPasswordEmail(email, token)
+	if err != nil {
+		return utils.Internal("Error sending email", nil)
+	}
+
+	existingUser.Password_reset_token = token
+	existingUser.Password_reset_token_expires = time.Now().Add(10 * time.Minute)
+
+	err = s.Repo.UpdatePasswordToken(ctx, existingUser)
+	if err != nil {
+		return utils.Internal("Error saving reset token", nil)
+	}
+
+	return nil
+}
+
+func (s *UserService) ResetPassword(ctx context.Context, token string, req *models.UpdatePasswordRequest) error {
+
+	hashedPassword, err := utils.HashPassword(req.Password)
+	if err != nil {
+		return err
+	}
+
+	req.Password = hashedPassword
+
+	err = s.Repo.UpdatePassword(ctx, token, req)
+	if err != nil {
+		return err
+	}
+	return nil
 }

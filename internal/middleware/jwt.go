@@ -13,15 +13,16 @@ import (
 )
 
 var publicRoutes = map[string]bool{
-	"/":                 true,
-	"/api/auth/sign-up": true,
-	"/api/auth/login":   true,
+	"/":                         true,
+	"/api/auth/sign-up":         true,
+	"/api/auth/login":           true,
+	"/api/auth/forgot-password": true,
+	"/api/auth/reset-password":  true,
 }
 
 func JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		fmt.Printf("DEBUG: path: %v\n", r.URL.Path)
 		if publicRoutes[r.URL.Path] {
 			next.ServeHTTP(w, r)
 			return
@@ -55,8 +56,6 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
 		ctx = context.WithValue(ctx, "email", claims.Email)
 		ctx = context.WithValue(ctx, "username", claims.Username)
-
-		fmt.Printf("DEBUG: after adding context values: %v\n", ctx)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

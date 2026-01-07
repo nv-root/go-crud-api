@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 )
 
 func CreateTokenWithClaims(user models.User) (string, error) {
-	fmt.Printf("DEBUG: userId %v\n", user.ID)
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &models.Claims{
 		UserID:   user.ID.Hex(),
@@ -21,8 +19,6 @@ func CreateTokenWithClaims(user models.User) (string, error) {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-
-	fmt.Printf("DEBUG: claims when creating token: %v\n", claims)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))

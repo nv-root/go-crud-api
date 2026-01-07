@@ -1,6 +1,6 @@
 package config
 
-type Config struct {
+type Primary struct {
 	MongoUri  string
 	Database  string
 	Port      string
